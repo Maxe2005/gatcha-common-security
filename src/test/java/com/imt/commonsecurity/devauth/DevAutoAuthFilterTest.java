@@ -74,8 +74,12 @@ class DevAutoAuthFilterTest {
     }
 
     @Test
-    void blankAuthorizationHeader_treatedAsMissing_attachesDevToken() throws Exception {
-        when(devTokenClient.fetchToken()).thenReturn(Optional.of("dev-token-1"));
+    void blankAuthorizationHeader_treatedAsPresentLikeAbstractAuthInterceptor_neverOverwritten() throws Exception {
+        // AbstractAuthInterceptor.preHandle() ne rejette que sur header null/vide (isEmpty()) : un
+        // header non-null composé uniquement d'espaces y est traité comme "présent" (et rejeté en
+        // aval pour format invalide). Ce filtre doit appliquer exactement la même définition, sinon
+        // il écraserait silencieusement un header que l'interceptor considère déjà présent
+        // (Review Story 1.1 — AC #2 / Task 3(d)).
         DevAutoAuthFilter filter = new DevAutoAuthFilter(devTokenClient);
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/players/Sacha");
@@ -86,6 +90,7 @@ class DevAutoAuthFilterTest {
         filter.doFilter(request, response, chain);
 
         String forwardedHeader = ((jakarta.servlet.http.HttpServletRequest) chain.getRequest()).getHeader("Authorization");
-        assertThat(forwardedHeader).isEqualTo("Bearer dev-token-1");
+        assertThat(forwardedHeader).isEqualTo("   ");
+        verify(devTokenClient, never()).fetchToken();
     }
 }

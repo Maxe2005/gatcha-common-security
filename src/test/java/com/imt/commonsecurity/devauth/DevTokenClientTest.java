@@ -10,8 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
@@ -41,8 +43,12 @@ class DevTokenClientTest {
     @Test
     void fetchToken_returnsEmpty_whenSidecarHasNoTokenYet() {
         init();
+        // Un RestTemplate par défaut (DefaultResponseErrorHandler) lève une exception sur un 5xx —
+        // il ne renvoie jamais de ResponseEntity avec un statut d'erreur (Review Story 1.1 : le mock
+        // précédent simulait une forme de réponse que RestTemplate ne produit jamais en pratique).
         when(restTemplate.getForEntity(any(String.class), eq(DevTokenResponse.class)))
-                .thenReturn(new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE));
+                .thenThrow(HttpServerErrorException.create(
+                        HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", HttpHeaders.EMPTY, new byte[0], null));
 
         assertThat(client.fetchToken()).isEmpty();
     }

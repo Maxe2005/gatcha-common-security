@@ -51,8 +51,12 @@ public class DevAutoAuthFilter implements Filter {
             return;
         }
 
+        // Même définition de "header présent" que AbstractAuthInterceptor.preHandle() (isEmpty(),
+        // pas isBlank()) : un header non-null même composé uniquement d'espaces doit être laissé
+        // intact ici et rejeté normalement en aval, jamais silencieusement écrasé par ce filtre
+        // (AC #2 / Task 3(d) — Review Story 1.1).
         String existingHeader = httpRequest.getHeader(AUTH_HEADER);
-        if (existingHeader != null && !existingHeader.isBlank()) {
+        if (existingHeader != null && !existingHeader.isEmpty()) {
             chain.doFilter(request, response);
             return;
         }
