@@ -70,14 +70,13 @@ public class TokenVerificationClient {
      * corrélation de bout en bout (story 2.1).
      */
     private String extractRequestId() {
-        ServletRequestAttributes attributes =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes != null) {
+        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
             String requestId = attributes.getRequest().getHeader(X_REQUEST_ID);
-            if (requestId != null) {
+            if (requestId != null && !requestId.isBlank()) {
                 return requestId;
             }
         }
-        return MDC.get(X_REQUEST_ID);
+        String mdcRequestId = MDC.get(X_REQUEST_ID);
+        return (mdcRequestId != null && !mdcRequestId.isBlank()) ? mdcRequestId : null;
     }
 }
